@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[17]:
-
+#importing required libraries
 
 import pandas_datareader as web
 import pandas as pd
@@ -15,34 +11,32 @@ from keras.layers import Dense, Dropout, LSTM
 warnings.filterwarnings('ignore')
 
 
-# In[18]:
-
+#importing data from web
 
 Data = web.DataReader("MSFT",data_source='yahoo',start = '2010-01-10',end = '2020-10-25')
-Data
+print(Data)
 
 
-# In[19]:
 
 
-#plotting
+#plotting data
+
 import matplotlib.pyplot as plt
 plt.figure(figsize = (16,8))
 plt.plot(Data['Close'], label = 'CLOSE PRICE HISTORY')
 
 
-# In[20]:
-
+#choosing the required features of data
 
 new_data = pd.DataFrame(index = range(0,len(Data)),columns = ['Close'])
 for i in range(0,len(Data)):
     new_data['Close'][i] = Data['Close'][i]
 new_data.index = Data.index
-new_data
+print(new_data)
 
 
-# In[21]:
 
+#to start with very basic, let's try it with MOVING AVERAGE
 
 #setting test and train data 
 train = new_data[:2500]
@@ -51,33 +45,29 @@ print(train.shape)
 print(test.shape)
 
 
-# In[22]:
 
 
 #now we will work on moving average and then 
 #we approach root mean square error
+
 pred = []
 for i in range(0,test.shape[0]):
     a = train['Close'][len(train)-len(test)+i:].sum() + sum(pred)
     b = a/len(test)
     pred.append(b)
-
+#calculating root mean square error
 rms = np.sqrt(np.mean(np.power((np.array(test['Close'])-pred),2)))
 print('rms: ', rms)
 
 
-# In[30]:
-
 
 #RMSE does not give complete information, so we visualize this model
+
 test['Predictions'] = pred
 plt.figure(figsize=(16,8))
 plt.plot(train['Close'])
 plt.plot(test[['Close','Predictions']])
 plt.show()
-
-
-# In[24]:
 
 
 #Inference
@@ -87,14 +77,9 @@ plt.show()
 #but it is not what we want
 
 
-# In[25]:
-
-
 #so we will try it with different ML techniques
 #Auto-ARIMA and LSTM
 
-
-# In[26]:
 
 
 #creating new dataset so that it don't affect original dataset
@@ -104,10 +89,8 @@ df.index =Data.index
 for i in range(len(Data)):
     df['Close'][i] = Data['Close'][i]
 df = df.reset_index()
-df
+print(df)
 
-
-# In[28]:
 
 
 #let's try with Auto ARIMA
@@ -121,26 +104,20 @@ training = train['Close']
 testing = test['Close']
 
 
-# In[29]:
-
+#implementing Auto-ARIMA
 
 model = auto_arima(training,start_p=1,start_q=1,max_p=3,max_q=3,m=12,
                   start_P=0,seasonal=True,d=1,D=1,trace=True, error_action= 'ignore',
                   suppress_warnings=True)
 model.fit(training)
+
+
 forecast = model.predict(n_periods=217)
-
-
-# In[15]:
-
-
 forecast = pd.DataFrame(forecast,index=test.index,columns=['Predictions'])
 #root mean square
 rms = np.sqrt(np.mean(np.power((np.array(test['Close'])-np.array(forecast['Predictions'])),2)))
 rms
 
-
-# In[16]:
 
 
 #plot
@@ -150,14 +127,9 @@ plt.plot(test['Close'])
 plt.plot(forecast['Predictions'])
 plt.show()
 
+#Inference
+#Auto-ARIMA seems to be a really good fit. 
 
-# In[ ]:
-
-
-# ARIMA seems to be a really good fit. 
-
-
-# In[27]:
 
 
 #LSTM is mainly for: Sequence Prediction
@@ -166,8 +138,6 @@ new_data = df
 new_data.index = df.Date
 new_data=new_data.drop(columns = ['Date'])
 
-
-# In[32]:
 
 
 dataset = new_data.values
@@ -181,8 +151,6 @@ scaled_data = scaler.fit_transform(dataset)
 #print(scaled_data)
 
 
-# In[35]:
-
 
 x_train, y_train = [],[]
 for i in range(90,len(train)):
@@ -191,8 +159,6 @@ for i in range(90,len(train)):
 x_train, y_train = np.array(x_train), np.array(y_train)
 x_train = np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
 
-
-# In[38]:
 
 
 #create and fit LSTM model
@@ -221,14 +187,11 @@ closing_price = model.predict(X_test)
 closing_price = scaler.inverse_transform(closing_price)
 
 
-# In[39]:
-
+#calculating the error
 
 rms = np.sqrt(np.mean(np.power((test-closing_price),2)))
 rms
 
-
-# In[43]:
 
 
 #plot
@@ -240,8 +203,6 @@ plt.plot(train['Close'])
 plt.plot(test[['Close','Predictions']])
 plt.show()
 
-
-# In[ ]:
 
 
 #inference
